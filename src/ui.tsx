@@ -67,7 +67,6 @@ function PrescriptionPage() {
 
   const schedule = useMemo(() => {
     if (prescription) { 
-      console.log(prescription);
       return new ViewModel.Schedule(prescription);
     }
   }, [prescription]);

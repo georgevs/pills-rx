@@ -1,38 +1,54 @@
 export class Services {
-  datasets = new Db.Datasets();
+  datasets: Db.Datasets;
+  constructor() {
+    const remoteDb = new Db.RemoteDb();
+    this.datasets = new Db.Datasets(remoteDb);
+  }
 }
 
 export namespace Db {
+
+  export class RemoteDb {
+    async get<T>(url: string, options?: RequestInit): Promise<T> {
+      const response = await fetch(url, options);
+      if (!response.ok) { throw new Error(response.statusText) }
+      return await response.json();
+    }
+  }
   
   export class Datasets {
-    drugs = new Drugs();
-    prescriptions = new Prescriptions();
-    rules = new Rules();
-    takes = new Takes();
+    drugs: Drugs;
+    prescriptions: Prescriptions;
+    rules: Rules;
+    takes: Takes;
+
+    constructor(remoteDb: RemoteDb) {
+      this.drugs = new Drugs(remoteDb);
+      this.prescriptions = new Prescriptions(remoteDb);
+      this.rules = new Rules(remoteDb);
+      this.takes = new Takes(remoteDb);
+    }
   }
 
   class Takes {
-    async get({ pid, signal }: { pid: number; signal: AbortSignal }): Promise<Db.Take[]> {
-      const response = await fetch(`./data/takes.${pid}.json`, { signal });
-      if (!response.ok) { throw new Error(response.statusText) }
-      return await response.json();
+    constructor(public db: RemoteDb) {}
+    async get(id: number, options?: RequestInit): Promise<Db.Take[]> {
+      return this.db.get(`./data/takes.${id}.json`, options);
     }
   }
   
   class Rules {
-    async get({ signal }: { signal: AbortSignal }): Promise<Db.Rule[]> {
-      const response = await fetch('./data/rules.json', { signal });
-      if (!response.ok) { throw new Error(response.statusText) }
-      return await response.json();
+    constructor(public db: RemoteDb) {}
+    async get(options?: RequestInit): Promise<Db.Rule[]> {
+      return this.db.get('./data/rules.json', options);
     }
   }
   
   class Prescriptions {
-    async get({ id, signal }: { id: number; signal: AbortSignal }): Promise<Db.Prescription[]> {
-      const response = await fetch(`./data/prescriptions.${id}.json`, { signal });
-      if (!response.ok) { throw new Error(response.statusText) }
+    constructor(public db: RemoteDb) {}
+    async get(id: number, options?: RequestInit): Promise<Db.Prescription[]> {
       return (
-        (await response.json() as { id: number; start: string; numDays: number }[])
+        (await this.db.get(`./data/prescriptions.${id}.json`, options) as { id: number; start: string; numDays: number }[])
         .flatMap(row => {
           const start = new Date(row.start);
           return isNaN(start.getFullYear()) ? [] : [{ ...row, start }];
@@ -42,10 +58,9 @@ export namespace Db {
   }
   
   class Drugs {
-    async get({ signal }: { signal: AbortSignal }): Promise<Db.Drug[]> {
-      const response = await fetch('./data/drugs.json', { signal });
-      if (!response.ok) { throw new Error(response.statusText) }
-      return await response.json();
+    constructor(public db: RemoteDb) {}
+    async get(options?: RequestInit): Promise<Db.Drug[]> {
+      return this.db.get('./data/drugs.json', options);
     }
   }
   

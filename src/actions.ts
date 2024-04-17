@@ -3,14 +3,14 @@ import { Services } from "./services";
 
 export async function fetchPrescription(
   id: number, 
-  options: { services: Services, signal: AbortSignal }
+  { services, signal }: { services: Services, signal?: AbortSignal }
 ): Promise<Model.Prescription> {
-  const { services, signal } = options;
+  const options = { signal };
   const [drugs = [], prescriptions = [], rules = [], takes = []] = await Promise.all([
-    services.datasets.drugs.get({ signal }),
-    services.datasets.prescriptions.get({ id, signal }),
-    services.datasets.rules.get({ signal }),
-    services.datasets.takes.get({ pid: id, signal }),
+    services.datasets.drugs.get(options),
+    services.datasets.prescriptions.get(id, options),
+    services.datasets.rules.get(options),
+    services.datasets.takes.get(id, options),
   ]);
   return new Model.Prescription(id, { drugs, prescriptions, rules, takes });
 }
