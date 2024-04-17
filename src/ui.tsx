@@ -1,8 +1,9 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { createBrowserRouter, createRoutesFromElements, Outlet, Route, RouterProvider } from 'react-router-dom';
-import { Db, Services } from './services';
-import { Dates, FormatDate, legendLabel } from './utils';
+import { Services } from './services';
 import { Model } from './model';
+import { fetchPrescription } from './actions';
+import { FormatDate, legendLabel } from './utils';
 
 export default function App() {
   return (
@@ -49,20 +50,6 @@ function Layout() {
   );
 }
 
-async function fetchPrescription(
-  id: number, 
-  options: { services: Services, signal: AbortSignal }
-): Promise<Model.Prescription> {
-  const { services, signal } = options;
-  const [drugs = [], prescriptions = [], rules = [], takes = []] = await Promise.all([
-    services.datasets.drugs.get({ signal }),
-    services.datasets.prescriptions.get({ id, signal }),
-    services.datasets.rules.get({ signal }),
-    services.datasets.takes.get({ pid: id, signal }),
-  ]);
-  return new Model.Prescription(id, { drugs, prescriptions, rules, takes });
-}
-
 function PrescriptionPage() {
   const [prescription, setPrescription] = useState<Model.Prescription | null>(null);
   const services = useContext(ServicesContext)!;
@@ -80,6 +67,7 @@ function PrescriptionPage() {
 
   const schedule = useMemo(() => {
     if (prescription) { 
+      console.log(prescription);
       return new ViewModel.Schedule(prescription);
     }
   }, [prescription]);
@@ -155,64 +143,39 @@ function Legend({ legend }: LegendProps) {
 }
 
 namespace ViewModel {
-
+  type Slot = { span: number; label: string };
+  type Drug = { label: string };
+  type Take = { dose: number };
+  type Day = { day: number; date: Date; takes: Array<Take | undefined> }
   export type Legend = Array<{ label: string; description: string }>;
 
   export class Schedule {
-    slots: Array<{ span: number; label: string }>;
-    drugs: Array<{ label: string }>;
+    slots: Slot[];
+    drugs: Drug[];
+    days: Day[];
     legend: Legend;
-    days: Array<{ day: number; date: Date; takes: Array<{ dose: number } | undefined> }>;
     
     constructor(prescription: Model.Prescription) {
-      const days: Array<{ day: number; date: Date; takes: Model.Take[]}> = [];
-      for (let day = 0; day < prescription.numDays; ++day) {
-        const takes = prescription.takes.filter(({ rule }) => !rule || rule.includes(day, prescription.numDays));
-        if (takes.length > 0) {
-          days.push({ day: day+1, date: Dates.addDays(prescription.start, day), takes });
-        }
-      }
-      const uniqueDrugs = Array.from(
-        new Set(days.flatMap(({ takes }) => takes.map(({ drug }) => drug)))
-      );
-      uniqueDrugs.sort(({ description: lhs }, { description: rhs }) => lhs.localeCompare(rhs));
-      const drugsIndex: Map<Db.Drug, number> = uniqueDrugs.reduce((acc, drug, drugId) => acc.set(drug, drugId), new Map());
+      const sortedSlots = Array.from(prescription.slots.values())
+        .sort(({ index: lhs }, { index: rhs }) => lhs - rhs);
 
-      const uniqueSlots = Array.from(
-        new Set(days.flatMap(({ takes }) => takes.flatMap(({ slots }) => slots)))
-      );
-      uniqueSlots.sort(({ time: lhs }, { time: rhs }) => lhs - rhs);
-      const slotsIndex: Map<Model.Slot, number> = uniqueSlots.reduce((acc, slot, slotId) => acc.set(slot, slotId), new Map());
+      this.slots = sortedSlots.map(({ time }) => ({ time, span: 1, label: time.toString() }))
+        .reduce((acc, slot, i) => {
+          if (i > 0 && acc[acc.length-1].time === slot.time) { acc[acc.length-1].span++ }
+          else { acc.push(slot) }
+          return acc;
+        }, new Array<{ time: number, span: number; label: string }>());
 
-      type Col = { key: number; slot: Model.Slot; drug: Db.Drug };
-      const colKey = (slot: Model.Slot, drug: Db.Drug) => slotsIndex.get(slot)!*drugsIndex.size + drugsIndex.get(drug)!;
-      const cols: Array<Col> = Array.from(
-        days.flatMap(({ takes }) => takes.flatMap(({ drug, slots }) => slots.map(slot => ({ slot, drug, key: colKey(slot, drug) }))))
-        .reduce((acc, col) => acc.set(col.key, col), new Map())
-        .values()
-      );
-      cols.sort((lhs, rhs) => lhs.key - rhs.key);
+      this.drugs = sortedSlots.map(({ drug: { index } }) => ({ label: legendLabel(index) }));
 
-      const slots: Array<{ span: number; slot: Model.Slot }> = cols.reduce((acc, { slot }, i) => {
-        if (i > 0 && acc[acc.length-1].slot === slot) { acc[acc.length-1].span++ }
-        else { acc.push({ span: 1, slot }) }
-        return acc;
-      }, new Array());
+      this.days = prescription.days.map(({ day, date, takes }) => ({ 
+        day, 
+        date, 
+        takes: Array.from(Array(this.drugs.length), (_, index) => takes.get(index))
+      }));
 
-
-      this.slots = slots.map(({ span, slot: { time } }) => ({ span, label: time.toString() }));
-      this.drugs = cols.map(({ drug }) => ({ label: legendLabel(drugsIndex.get(drug)!) }));
-      this.legend = Array.from(drugsIndex.entries())
-        .map(([{ description }, drugId]) => ({ label: legendLabel(drugId), description }));
-      this.legend.sort(({ label: lhs }, { label: rhs }) => lhs.localeCompare(rhs));
-      this.days = days.map(({ day, date, takes: dayTakes }) => {
-        const takes = dayTakes.flatMap(({ slots, drug, dose }) => slots.map(slot => ({ 
-          slot, drug, dose,
-          key: colKey(slot, drug)
-        })))
-        .reduce((acc, take) => acc.set(take.key, take), new Map<number, { slot: Model.Slot, drug: Db.Drug, dose: number }>());
-        return { day, date, takes: cols.map(({ key }) => takes.get(key)) };
-      });
+      this.legend = Array.from(prescription.drugs.values())
+        .map(({ index, description }) => ({ label: legendLabel(index), description }));
     }
   }
 
