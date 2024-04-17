@@ -34,3 +34,7 @@ export function legendLabel(legendIndex: number): string {
   }
   return r.map(i => String.fromCharCode(65 + i)).join('');
 }
+
+export class BadStateError extends Error { 
+  constructor() { super('Bad state') } 
+}

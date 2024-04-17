@@ -20,7 +20,8 @@ export namespace Model {
         drugs: Db.Drug[],
         prescriptions: Db.Prescription[],
         rules: Db.Rule[],
-        takes: Db.Take[]
+        takes: Db.Take[],
+        logs: Db.Log[]
     }) {
       const prescription = db.prescriptions.find(({ id: prescriptionId }) => id === prescriptionId);
       if (!prescription) { throw new Error('Not found') }

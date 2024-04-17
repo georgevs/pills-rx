@@ -1,16 +1,21 @@
 import { Model } from "./model";
 import { Services } from "./services";
+import { BadStateError } from "./utils";
 
 export async function fetchPrescription(
   id: number, 
   { services, signal }: { services: Services, signal?: AbortSignal }
 ): Promise<Model.Prescription> {
+  const { datasets } = services;
+  if (!datasets) { throw new BadStateError() }
+
   const options = { signal };
-  const [drugs = [], prescriptions = [], rules = [], takes = []] = await Promise.all([
-    services.datasets.drugs.get(options),
-    services.datasets.prescriptions.get(id, options),
-    services.datasets.rules.get(options),
-    services.datasets.takes.get(id, options),
+  const [drugs = [], prescriptions = [], rules = [], takes = [], logs = []] = await Promise.all([
+    datasets.drugs.get(options),
+    datasets.prescriptions.get(id, options),
+    datasets.rules.get(options),
+    datasets.takes.get(id, options),
+    datasets.history.get(),
   ]);
-  return new Model.Prescription(id, { drugs, prescriptions, rules, takes });
+  return new Model.Prescription(id, { drugs, prescriptions, rules, takes, logs });
 }

@@ -7,22 +7,33 @@ import { FormatDate, legendLabel } from './utils';
 
 export default function App() {
   return (
-    <ServicesProvider services={new Services()}>
+    <ServicesProvider>
       <RouterProvider router={createAppRouter()} />
     </ServicesProvider>
   );
 }
 
-const ServicesContext = createContext<Services | null>(null);
+const ServicesContext = createContext<Services | undefined>(undefined);
+const useServices = () => useContext(ServicesContext);
 
 interface ServicesProviderProps { 
-  services: Services; 
   children: ReactNode
 }
 
-function ServicesProvider({ services, children }: ServicesProviderProps) {
+function ServicesProvider({ children }: ServicesProviderProps) {
+  const [services, setServices] = useState<Services>();
+  
+  useEffect(() => {
+    let canceled = false;
+    new Services().init()
+      .then(services => { !canceled && setServices(services) });
+    return () => { canceled = true }  
+  }, []);
+
   return (
-    <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>
+    <ServicesContext.Provider value={services}>
+      {children}
+    </ServicesContext.Provider>
   );
 }
 
@@ -51,19 +62,25 @@ function Layout() {
 }
 
 function PrescriptionPage() {
-  const [prescription, setPrescription] = useState<Model.Prescription | null>(null);
-  const services = useContext(ServicesContext)!;
+  const services = useServices();
+  const [prescription, setPrescription] = useState<Model.Prescription>();
   
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-    const id = 1; // TODO
-
-    fetchPrescription(id, { services, signal })
-      .then(setPrescription);
-
-    return () => { controller.abort() }
-  }, []);
+    if (services) {
+      let canceled = false;
+      const controller = new AbortController();
+      const signal = controller.signal;
+      const id = 1; // TODO
+  
+      fetchPrescription(id, { services, signal })
+        .then(prescription => { !canceled && setPrescription(prescription) });
+  
+      return () => {
+        controller.abort();
+        canceled = true;
+      }
+    }
+  }, [services]);
 
   const schedule = useMemo(() => {
     if (prescription) { 
