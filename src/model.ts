@@ -4,12 +4,13 @@ import { Dates } from './utils';
 
 export namespace Model {
 
-  type Drug = { index: number; description: string };
-  type Slot = { index: number; time: number; drug: Drug; }
-  type Take = { slot: Slot; dose: number };
-  type Day = { day: number; date: Date; takes: Map<number, Take> };
+  export type Drug = { index: number; did: number; description: string };
+  export type Slot = { index: number; time: number; drug: Drug; }
+  export type Take = { slot: Slot; dose: number };
+  export type Day = { day: number; date: Date; takes: Map<number, Take> };
   
   export class Prescription {
+    id: number;
     drugs: Map<number, Drug>;
     slots: Map<number, Slot>;
     days: Day[];
@@ -58,8 +59,12 @@ export namespace Model {
       sortedTakes.sort((lhs, rhs) => lhs - rhs);
       const takesOrder = new Map(sortedTakes.map((key, i) => [key, i]));
 
+      this.id = id;
+
       this.drugs = new Map(
-        Array.from(drugsOrder.entries()).map(([drug, index]) => [index, { index, description: drug.description }])
+        Array.from(drugsOrder.entries()).map(([drug, index]) => 
+          [index, { index, did: drug.id, description: drug.description }]
+        )
       );
       this.slots = new Map(
         Array.from(takesOrder.entries()).map(([key, index]) => {
