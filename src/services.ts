@@ -73,10 +73,11 @@ export namespace Db {
         const tr = db.transaction(History.storeName, 'readwrite');
         tr.onerror = () => { reject(tr.error) };
         tr.oncomplete = () => { resolve() };
-        const store = tr.objectStore('Inventory');
+        const store = tr.objectStore(History.storeName);
         values.forEach(value => {
           const { pid, did, time, day } = value;
-          store.put(value, [pid, did, time, day]);
+          const key = [pid, did, time, day];
+          store.put(value, key);
         });
       });
     }
@@ -174,5 +175,6 @@ export namespace Db {
     did: number;
     time: number;
     day: number;
+    taken: boolean;
   }
 }

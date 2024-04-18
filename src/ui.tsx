@@ -89,10 +89,14 @@ function PrescriptionPage() {
     }
   }, [prescription]);
 
+  function handleTakeChange(options: { pid: number; did: number; time: number; day: number; taken: boolean }) {
+    services?.datasets?.history.put([options]);
+  }
+
   return (
     <>
       {!schedule && <p>Loading...</p>}
-      {schedule && <Schedule schedule={schedule} onTakeChange={console.log.bind(console)}/>}
+      {schedule && <Schedule schedule={schedule} onTakeChange={handleTakeChange}/>}
       {schedule && <Legend legend={schedule.legend} />}
     </>
   );
@@ -143,7 +147,7 @@ function Schedule({ schedule, onTakeChange }: ScheduleProps) {
               <td className='date'>{FormatDate.weekDay(date)}</td>
               {takes.map((take, colIndex) => (
                 <td key={colIndex} className='take'>
-                  {take && <input type='checkbox' onChange={handleTakeChange?.bind(null, take)}/>}
+                  {take && <input type='checkbox' checked={take.taken} onChange={handleTakeChange?.bind(null, take)}/>}
                 </td>
               ))}
             </tr>
@@ -179,7 +183,7 @@ function Legend({ legend }: LegendProps) {
 namespace ViewModel {
   type Slot = { span: number; label: string };
   type Drug = { label: string };
-  export type Take = { did: number; time: number; dose: number };
+  export type Take = { did: number; time: number; dose: number; taken: boolean };
   type Day = { day: number; date: Date; takes: Array<Take | undefined> }
   export type Legend = Array<{ label: string; description: string }>;
 
@@ -211,8 +215,8 @@ namespace ViewModel {
         takes: Array.from(Array(this.drugs.length), (_, index) => {
           const take = takes.get(index);
           if (take) {
-            const { dose, slot: { time, drug: { did }} } = take;
-            return { did, time, dose };
+            const { dose, slot: { time, drug: { did }}, taken } = take;
+            return { did, time, dose, taken };
           }
         })
       }));

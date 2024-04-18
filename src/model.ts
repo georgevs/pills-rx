@@ -6,7 +6,7 @@ export namespace Model {
 
   export type Drug = { index: number; did: number; description: string };
   export type Slot = { index: number; time: number; drug: Drug; }
-  export type Take = { slot: Slot; dose: number };
+  export type Take = { slot: Slot; dose: number; taken: boolean };
   export type Day = { day: number; date: Date; takes: Map<number, Take> };
   
   export class Prescription {
@@ -59,6 +59,20 @@ export namespace Model {
       sortedTakes.sort((lhs, rhs) => lhs - rhs);
       const takesOrder = new Map(sortedTakes.map((key, i) => [key, i]));
 
+
+      const logKey = ({ time, drug, day }: {time: number, drug: Db.Drug, day: number}) => day*takesOrder.size + takesOrder.get(takeKey({ time, drug }))!;
+      const logsIndex = db.logs.filter(({ pid }) => pid === id)
+        .reduce((acc, log) => {
+          const { did, time, day } = log;
+          const drug = drugsIndex.get(did);
+          if (drug) {
+            acc.set(logKey({ time, drug, day }), log);
+          }
+          return acc;
+        }, new Map<number, Db.Log>());
+      
+      console.log({ logsIndex });
+      
       this.id = id;
 
       this.drugs = new Map(
@@ -77,7 +91,8 @@ export namespace Model {
           takes.map(take => {
             const index = takesOrder.get(takeKey(take))!;
             const slot = this.slots.get(index)!;
-            return [slot.index, { slot, dose: take.dose }];
+            const { taken = false } = logsIndex.get(logKey({ time: slot.time, drug: take.drug, day})) ?? {};
+            return [slot.index, { slot, dose: take.dose, taken }];
           })
         );
         return { day, date, takes: takesIndex };

@@ -17,5 +17,6 @@ export async function fetchPrescription(
     datasets.takes.get(id, options),
     datasets.history.get(),
   ]);
+  console.debug('fetched', { drugs, prescriptions, rules, takes, logs });
   return new Model.Prescription(id, { drugs, prescriptions, rules, takes, logs });
 }
