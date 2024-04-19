@@ -3,7 +3,6 @@ import { createBrowserRouter, createRoutesFromElements, Outlet, Route, RouterPro
 import { Services } from './services';
 import { Model } from './model';
 import { fetchPrescription } from './actions';
-import { FormatDate, legendLabel } from './utils';
 
 export default function App() {
   return (
@@ -70,9 +69,9 @@ function PrescriptionPage() {
       let canceled = false;
       const controller = new AbortController();
       const signal = controller.signal;
-      const id = 1; // TODO
+      const pid = 1; // TODO
   
-      fetchPrescription(id, { services, signal })
+      fetchPrescription(pid, { services, signal })
         .then(prescription => { !canceled && setPrescription(prescription) });
   
       return () => {
@@ -107,27 +106,27 @@ interface ScheduleProps {
   onTakeChange(options: { pid: number; did: number, time: number, day: number, taken: boolean }): void;
 }
 
-function Schedule({ schedule, onTakeChange }: ScheduleProps) {
-  const { slots, drugs, days } = schedule;
+function Schedule(_props: ScheduleProps) {
+  // const { slots, drugs, days } = schedule;
   
-  const handleTakeChange = useMemo(() => {
-    if (onTakeChange) {
-      return function handleTakeChange(take: ViewModel.Take, event: any) {
-        const input = event.target as HTMLInputElement;
-        const { checked: taken } = input;
-        const { day = '' } = input.closest('tr')?.dataset ?? { };
-        const { id: pid } = schedule;
-        const { did, time } = take;
-        onTakeChange({ pid, did, time, day: parseInt(day), taken });
-      }
-    }
-  }, [onTakeChange]);
+  // const handleTakeChange = useMemo(() => {
+  //   if (onTakeChange) {
+  //     return function handleTakeChange(take: ViewModel.Take, event: any) {
+  //       const input = event.target as HTMLInputElement;
+  //       const { checked: taken } = input;
+  //       const { day = '' } = input.closest('tr')?.dataset ?? { };
+  //       const { id: pid } = schedule;
+  //       const { did, time } = take;
+  //       onTakeChange({ pid, did, time, day: parseInt(day), taken });
+  //     }
+  //   }
+  // }, [onTakeChange]);
 
   return (
     <>
       <table className='prescription'>
         <thead>
-          <tr className='slots'>
+          {/* <tr className='slots'>
             <th colSpan={2}></th>
             {slots.map(({ span, label }, colIndex) => (
               <th key={colIndex} colSpan={span}>{label}</th>
@@ -138,10 +137,10 @@ function Schedule({ schedule, onTakeChange }: ScheduleProps) {
             {drugs.map(({ label }, colIndex) => (
               <th key={colIndex}>{label}</th>
             ))}
-          </tr>
+          </tr> */}
         </thead>
         <tbody>
-          {days.map(({ day, date, takes }, rowIndex) => (
+          {/* {days.map(({ day, date, takes }, rowIndex) => (
             <tr key={rowIndex} data-day={day}>
               <td className='day'>{day}</td>
               <td className='date'>{FormatDate.weekDay(date)}</td>
@@ -151,7 +150,7 @@ function Schedule({ schedule, onTakeChange }: ScheduleProps) {
                 </td>
               ))}
             </tr>
-          ))}
+          ))} */}
         </tbody>
       </table>
     </>
@@ -162,18 +161,18 @@ interface LegendProps {
   legend: ViewModel.Legend;
 }
 
-function Legend({ legend }: LegendProps) {
+function Legend(_props: LegendProps) {
   return (
     <>
       <h3>Legend:</h3>
       <table className='legend'>
         <tbody>
-          {legend.map(({ label, description }, index) => (
+          {/* {legend.map(({ label, description }, index) => (
             <tr key={index}>
               <td className='key'>{label}</td>
               <td>{description}</td>
             </tr>
-          ))}
+          ))} */}
         </tbody>
       </table>
     </>
@@ -181,48 +180,21 @@ function Legend({ legend }: LegendProps) {
 }
 
 namespace ViewModel {
-  type Slot = { span: number; label: string };
-  type Drug = { label: string };
-  export type Take = { did: number; time: number; dose: number; taken: boolean };
-  type Day = { day: number; date: Date; takes: Array<Take | undefined> }
+  // type Slot = { span: number; label: string };
+  // type Drug = { label: string };
+  // type Take = { did: number; time: number; dose: number; taken: boolean };
+  // type Day = { day: number; date: Date; takes: Array<Take | undefined> }
   export type Legend = Array<{ label: string; description: string }>;
 
   export class Schedule {
-    id: number;
-    slots: Slot[];
-    drugs: Drug[];
-    days: Day[];
+    // id: number;
+    // slots: Slot[];
+    // drugs: Drug[];
+    // days: Day[];
     legend: Legend;
     
-    constructor(prescription: Model.Prescription) {
-      const sortedSlots = Array.from(prescription.slots.values())
-        .sort(({ index: lhs }, { index: rhs }) => lhs - rhs);
-      
-      this.id = prescription.id;
-
-      this.slots = sortedSlots.map(({ time }) => ({ time, span: 1, label: time.toString() }))
-        .reduce((acc, slot, i) => {
-          if (i > 0 && acc[acc.length-1].time === slot.time) { acc[acc.length-1].span++ }
-          else { acc.push(slot) }
-          return acc;
-        }, new Array<{ time: number, span: number; label: string }>());
-
-      this.drugs = sortedSlots.map(({ drug: { index } }) => ({ label: legendLabel(index) }));
-
-      this.days = prescription.days.map(({ day, date, takes }) => ({ 
-        day, 
-        date, 
-        takes: Array.from(Array(this.drugs.length), (_, index) => {
-          const take = takes.get(index);
-          if (take) {
-            const { dose, slot: { time, drug: { did }}, taken } = take;
-            return { did, time, dose, taken };
-          }
-        })
-      }));
-
-      this.legend = Array.from(prescription.drugs.values())
-        .map(({ index, description }) => ({ label: legendLabel(index), description }));
+    constructor(_prescription: Model.Prescription) {
+      this.legend = [];
     }
   }
 

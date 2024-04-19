@@ -97,14 +97,12 @@ export namespace Db {
   export class Datasets {
     drugs: Drugs;
     prescriptions: Prescriptions;
-    rules: Rules;
     takes: Takes;
     history: History;
 
     constructor(remoteDb: RemoteDb, localDb: LocalDb) {
       this.drugs = new Drugs(remoteDb);
       this.prescriptions = new Prescriptions(remoteDb);
-      this.rules = new Rules(remoteDb);
       this.takes = new Takes(remoteDb);
       this.history = new History(localDb);
     }
@@ -112,23 +110,16 @@ export namespace Db {
 
   class Takes {
     constructor(public db: RemoteDb) {}
-    async get(id: number, options?: RequestInit): Promise<Db.Take[]> {
-      return this.db.get(`./data/takes.${id}.json`, options);
-    }
-  }
-  
-  class Rules {
-    constructor(public db: RemoteDb) {}
-    async get(options?: RequestInit): Promise<Db.Rule[]> {
-      return this.db.get('./data/rules.json', options);
+    async get(pid: number, options?: RequestInit): Promise<Db.Take[]> {
+      return this.db.get(`./data/takes.${pid}.json`, options);
     }
   }
   
   class Prescriptions {
     constructor(public db: RemoteDb) {}
-    async get(id: number, options?: RequestInit): Promise<Db.Prescription[]> {
+    async get(pid: number, options?: RequestInit): Promise<Db.Prescription[]> {
       return (
-        (await this.db.get(`./data/prescriptions.${id}.json`, options) as { id: number; start: string; numDays: number }[])
+        (await this.db.get(`./data/prescriptions.${pid}.json`, options) as { pid: number; start: string; numDays: number }[])
         .flatMap(row => {
           const start = new Date(row.start);
           return isNaN(start.getFullYear()) ? [] : [{ ...row, start }];
@@ -145,13 +136,13 @@ export namespace Db {
   }
   
   export interface Drug { 
-    id: number; 
+    did: number; 
     description: string; 
     doses: number;
   }
 
   export interface Prescription {
-    id: number;
+    pid: number;
     start: Date;
     numDays: number;
   }
@@ -160,14 +151,8 @@ export namespace Db {
     pid: number;
     did: number;
     dose: number;
-    slots: number[];
-    rid?: number;
-  }
-  
-  export interface Rule {
-    id: number;
+    time: number;
     days: number[];
-    cycleNumDays?: number;
   }
 
   export interface Log {
