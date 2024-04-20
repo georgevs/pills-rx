@@ -24,7 +24,7 @@ table.prescription td.day {
   padding: 0 10px;
   text-align: right;
 }
-table.prescription td.take {
+table.prescription td.log {
   text-align: center;
 }
 table.legend td.key {

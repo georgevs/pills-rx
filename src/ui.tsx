@@ -3,6 +3,7 @@ import { createBrowserRouter, createRoutesFromElements, Outlet, Route, RouterPro
 import { Services } from './services';
 import { Model } from './model';
 import { fetchPrescription } from './actions';
+import { FormatDate } from './utils';
 
 export default function App() {
   return (
@@ -81,52 +82,54 @@ function PrescriptionPage() {
     }
   }, [services]);
 
-  const schedule = useMemo(() => {
+  const viewModel = useMemo(() => {
     if (prescription) { 
       console.debug({ prescription });
-      return new ViewModel.Schedule(prescription);
+      const schedule = new ViewModel.Schedule(prescription);
+      const legend = new ViewModel.Legend(prescription);
+      return { schedule, legend };
     }
   }, [prescription]);
 
-  function handleTakeChange(options: { pid: number; did: number; time: number; day: number; taken: boolean }) {
-    services?.datasets?.history.put([options]);
-  }
+  console.debug({ viewModel });
+
+  // function handleLogChange(options: { pid: number; did: number; time: number; day: number; taken: boolean }) {
+  //   services?.datasets?.history.put([options]);
+  // }
 
   return (
     <>
-      {!schedule && <p>Loading...</p>}
-      {schedule && <Schedule schedule={schedule} onTakeChange={handleTakeChange}/>}
-      {schedule && <Legend legend={schedule.legend} />}
+      {!viewModel && <p>Loading...</p>}
+      {viewModel && <Schedule schedule={viewModel.schedule} onLogChange={console.log.bind(console)} />}
+      {viewModel && <Legend legend={viewModel.legend} />}
     </>
   );
 }
 
 interface ScheduleProps {
   schedule: ViewModel.Schedule;
-  onTakeChange(options: { pid: number; did: number, time: number, day: number, taken: boolean }): void;
+  onLogChange?: (options: any) => void;
 }
 
-function Schedule(_props: ScheduleProps) {
-  // const { slots, drugs, days } = schedule;
+function Schedule({ schedule, onLogChange }: ScheduleProps) {
+  const { slots, drugs, days } = schedule;
   
-  // const handleTakeChange = useMemo(() => {
-  //   if (onTakeChange) {
-  //     return function handleTakeChange(take: ViewModel.Take, event: any) {
-  //       const input = event.target as HTMLInputElement;
-  //       const { checked: taken } = input;
-  //       const { day = '' } = input.closest('tr')?.dataset ?? { };
-  //       const { id: pid } = schedule;
-  //       const { did, time } = take;
-  //       onTakeChange({ pid, did, time, day: parseInt(day), taken });
-  //     }
-  //   }
-  // }, [onTakeChange]);
+  const handleLogChange = useMemo(() => {
+    if (onLogChange) {
+      return function handleLogChange(options: any, event: any) {
+        const input = event.target as HTMLInputElement;
+        const { checked: taken } = input;
+        const { lid } = options;
+        onLogChange({ lid, taken });
+      }
+    }
+  }, [onLogChange]);
 
   return (
     <>
       <table className='prescription'>
         <thead>
-          {/* <tr className='slots'>
+          <tr className='slots'>
             <th colSpan={2}></th>
             {slots.map(({ span, label }, colIndex) => (
               <th key={colIndex} colSpan={span}>{label}</th>
@@ -137,20 +140,20 @@ function Schedule(_props: ScheduleProps) {
             {drugs.map(({ label }, colIndex) => (
               <th key={colIndex}>{label}</th>
             ))}
-          </tr> */}
+          </tr>
         </thead>
         <tbody>
-          {/* {days.map(({ day, date, takes }, rowIndex) => (
+          {days.map(({ day, date, logs }, rowIndex) => (
             <tr key={rowIndex} data-day={day}>
               <td className='day'>{day}</td>
               <td className='date'>{FormatDate.weekDay(date)}</td>
-              {takes.map((take, colIndex) => (
-                <td key={colIndex} className='take'>
-                  {take && <input type='checkbox' checked={take.taken} onChange={handleTakeChange?.bind(null, take)}/>}
+              {logs.map((log, colIndex) => (
+                <td key={colIndex} className='log'>
+                  {log && <input type='checkbox' checked={log.taken} onChange={handleLogChange?.bind(null, log)} />}
                 </td>
               ))}
             </tr>
-          ))} */}
+          ))}
         </tbody>
       </table>
     </>
@@ -161,18 +164,19 @@ interface LegendProps {
   legend: ViewModel.Legend;
 }
 
-function Legend(_props: LegendProps) {
+function Legend({ legend }: LegendProps) {
+  const { drugs } = legend;
   return (
     <>
       <h3>Legend:</h3>
       <table className='legend'>
         <tbody>
-          {/* {legend.map(({ label, description }, index) => (
+          {drugs.map(({ label, description }, index) => (
             <tr key={index}>
               <td className='key'>{label}</td>
               <td>{description}</td>
             </tr>
-          ))} */}
+          ))}
         </tbody>
       </table>
     </>
@@ -180,21 +184,42 @@ function Legend(_props: LegendProps) {
 }
 
 namespace ViewModel {
-  // type Slot = { span: number; label: string };
-  // type Drug = { label: string };
-  // type Take = { did: number; time: number; dose: number; taken: boolean };
-  // type Day = { day: number; date: Date; takes: Array<Take | undefined> }
-  export type Legend = Array<{ label: string; description: string }>;
-
-  export class Schedule {
-    // id: number;
-    // slots: Slot[];
-    // drugs: Drug[];
-    // days: Day[];
-    legend: Legend;
+  
+  export class Legend {
+    drugs: Array<{ label: string; description: string }>;
     
-    constructor(_prescription: Model.Prescription) {
-      this.legend = [];
+    constructor(prescription: Model.Prescription) {
+      this.drugs = prescription.drugs.map(({ description, label }) => ({ description, label }));
+    }
+  }
+  
+  export class Schedule {
+    pid: number;
+    slots: Array<{ span: number; label: string }>;
+    drugs: Array<{ label: string }>;
+    days: Array<{ day: number; date: Date; logs: Array<{ taken: boolean; lid: number } | undefined> }>;
+    
+    constructor(prescription: Model.Prescription) {
+      this.pid = prescription.pid;
+      this.slots = prescription.takes
+        .reduce((acc, { slot: { time, label } }, i) => {
+          if (i > 0 && acc[acc.length - 1].time === time) { acc[acc.length - 1].span++ }
+          else { acc.push({ span: 1, time, label }) }
+          return acc;
+        }, new Array<{ span: number; time: number; label: string }>())
+        .map(({ span, label }) => ({ span, label }));
+      this.drugs = prescription.takes.map(({ drug: { label }}) => ({ label }));
+      this.days = prescription.days.map(({ day, date, logs }) => ({
+        day,
+        date,
+        logs: prescription.takes.map(({ tid }) => {
+          const log = logs.get(tid);
+          if (log) {
+            const { taken, lid } = log;
+            return { taken, lid };
+          }
+        })
+      }));
     }
   }
 
