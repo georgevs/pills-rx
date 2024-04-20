@@ -84,23 +84,19 @@ function PrescriptionPage() {
 
   const viewModel = useMemo(() => {
     if (prescription) { 
-      console.debug({ prescription });
+      // console.debug({ prescription });
       const schedule = new ViewModel.Schedule(prescription);
       const legend = new ViewModel.Legend(prescription);
       return { schedule, legend };
     }
   }, [prescription]);
 
-  console.debug({ viewModel });
-
-  // function handleLogChange(options: { pid: number; did: number; time: number; day: number; taken: boolean }) {
-  //   services?.datasets?.history.put([options]);
-  // }
+  // console.debug({ viewModel });
 
   return (
     <>
       {!viewModel && <p>Loading...</p>}
-      {viewModel && <Schedule schedule={viewModel.schedule} onLogChange={console.log.bind(console)} />}
+      {viewModel && <Schedule schedule={viewModel.schedule} onLogChange={prescription?.updateLog} />}
       {viewModel && <Legend legend={viewModel.legend} />}
     </>
   );
@@ -113,17 +109,16 @@ interface ScheduleProps {
 
 function Schedule({ schedule, onLogChange }: ScheduleProps) {
   const { slots, drugs, days } = schedule;
+
+  const [taken, setTaken] = useState<Map<number, boolean>>();
   
-  const handleLogChange = useMemo(() => {
-    if (onLogChange) {
-      return function handleLogChange(options: any, event: any) {
-        const input = event.target as HTMLInputElement;
-        const { checked: taken } = input;
-        const { lid } = options;
-        onLogChange({ lid, taken });
-      }
-    }
-  }, [onLogChange]);
+  function handleLogChange(options: any, event: any) {
+    const input = event.target as HTMLInputElement;
+    const { checked: taken } = input;
+    const { lid } = options;
+    if (onLogChange) { onLogChange({ lid, taken }) }
+    setTaken(t => new Map([...(t?.entries() ?? []), [lid, taken]]));
+  }
 
   return (
     <>
@@ -149,7 +144,12 @@ function Schedule({ schedule, onLogChange }: ScheduleProps) {
               <td className='date'>{FormatDate.weekDay(date)}</td>
               {logs.map((log, colIndex) => (
                 <td key={colIndex} className='log'>
-                  {log && <input type='checkbox' checked={log.taken} onChange={handleLogChange?.bind(null, log)} />}
+                  {log &&
+                    <input
+                      type='checkbox'
+                      checked={taken?.get(log.lid) ?? log.taken}
+                      onChange={handleLogChange?.bind(null, { lid: log.lid })}
+                    />}
                 </td>
               ))}
             </tr>
