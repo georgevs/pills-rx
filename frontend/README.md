@@ -11,11 +11,11 @@ openssl enc -aes-128-cbc -pbkdf2 -salt -d -in ~/ws-archive/certs.tar.gz.enc | ta
 docker container run --rm \
   --name node-app \
   --network bridge-dev \
-  --ip 172.20.0.100 \
+  --ip 172.20.0.101 \
   --user node \
   --workdir /home/node/pills-rx \
   --volume "$PWD:/home/node/pills-rx" \
-  --publish 3443:3443 \
+  --volume "$PWD/../certs:/home/node/pills-rx/certs" \
   -it node bash
 ```
 
