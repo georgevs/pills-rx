@@ -2,10 +2,6 @@
 
 ## Run the app locally
 
-### Install live certificates
-```
-openssl enc -aes-128-cbc -pbkdf2 -salt -d -in ~/ws-archive/certs.tar.gz.enc | tar xzv
-```
 ### Start node container
 ```
 docker container run --rm \
@@ -15,7 +11,6 @@ docker container run --rm \
   --user node \
   --workdir /home/node/pills-rx \
   --volume "$PWD:/home/node/pills-rx" \
-  --volume "$PWD/../certs:/home/node/pills-rx/certs" \
   -it node bash
 ```
 
@@ -26,15 +21,15 @@ npm install
 
 ### Run with Vite dev server (option #1)
 ```bash
-npm run dev -- --host 172.20.0.100 --port 3443
+npm run dev -- --host 172.20.0.101 --port 8080
 ```
 
 ### Run distribution build (option #2)
 ```bash
 npm run build -- --base=/pills-rx/ --outDir=dist/pills-rx
-npx http-server ./dist -c-1 --ssl -a 172.20.0.100 -p 3443 --cert ./certs/cert.pem --key ./certs/cert-key-nopassword.pem
+npx http-server ./dist -c-1 -a 172.20.0.101 -p 8080
 ```
-Open site at https://xps.spamfro.site:3443 (in LAN) or https://local.spamfro.site:3443 (via proxy: `ssh -L 3443:172.20.0.100:3443 xps`)
+Open site at http://xps.spamfro.site:8080 (in LAN) or http://local.spamfro.site:8080 (via proxy: `ssh -L 8080:172.20.0.101:8080 xps`)
 
 ### Deploy to GitHub pages
 [Vite: deploying to GitHub pages](https://vitejs.dev/guide/static-deploy#github-pages)  
