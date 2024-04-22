@@ -32,8 +32,8 @@ mysqldump --no-create-info pills_rx > data.sql
 ### Describe schema
 ```bash
 mysql --table pills_rx << EOF
-  describe Drugs;
-  describe Prescriptions;
-  describe Takes;
+  DESCRIBE Drugs;
+  DESCRIBE Prescriptions;
+  DESCRIBE Takes;
 EOF
 ```

@@ -1,26 +1,26 @@
-drop schema if exists pills_rx;
-create schema pills_rx;
-use pills_rx;
+DROP SCHEMA IF EXISTS pills_rx;
+CREATE SCHEMA pills_rx;
+USE pills_rx;
 
-create table Drugs (
-  did int primary key auto_increment, 
-  description varchar(255) not null
+CREATE TABLE Drugs (
+  did INT PRIMARY KEY AUTO_INCREMENT, 
+  description VARCHAR(255) NOT NULL
 );
 
-create table Prescriptions (
-  pid int primary key auto_increment, 
-  numDays int not null,
-  start date
+CREATE TABLE Prescriptions (
+  pid INT PRIMARY KEY AUTO_INCREMENT, 
+  numDays INT NOT NULL,
+  start DATE
 );
 
-create table Takes (
-  pid int not null,
-  did int not null,
-  time int not null,
-  dose int not null,
-  days varchar(255),
-  constraint PrescriptionId foreign key (pid) references Prescriptions (pid),
-  constraint DrugId foreign key (did) references Drugs (did)
+CREATE TABLE Takes (
+  pid INT NOT NULL,
+  did INT NOT NULL,
+  time INT NOT NULL,
+  dose INT NOT NULL,
+  days VARCHAR(255),
+  CONSTRAINT PrescriptionId FOREIGN KEY (pid) REFERENCES Prescriptions (pid),
+  CONSTRAINT DrugId FOREIGN KEY (did) REFERENCES Drugs (did)
 );
 
-create unique index TakesIndex on Takes (pid, did, time);
+CREATE UNIQUE INDEX TakesIndex ON Takes (pid, did, time);

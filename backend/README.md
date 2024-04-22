@@ -22,5 +22,5 @@ docker container run --rm \
   -it node bash
 
 npm install
-node index
+node app/main
 ```
