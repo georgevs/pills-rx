@@ -10,7 +10,7 @@ export async function fetchPrescription(
   if (!datasets) { throw new BadStateError() }
 
   const options = { signal };
-  const [drugs = [], prescriptions = [], takes = [], logs = []] = await Promise.all([
+  const [drugs = [], prescription = undefined, takes = [], logs = []] = await Promise.all([
     datasets.drugs.get(options),
     datasets.prescriptions.get(pid, options),
     datasets.takes.get(pid, options),
@@ -18,7 +18,6 @@ export async function fetchPrescription(
   ]);
   // console.debug('fetched', { drugs, prescriptions, takes, logs });
 
-  const prescription = prescriptions.find(({ pid: id }) => id === pid);
   if (prescription) {
     function updateHistory(values: Db.Log[]): Promise<void> {
       // console.debug('updateHistory', { values });

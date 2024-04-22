@@ -111,19 +111,20 @@ export namespace Db {
   class Takes {
     constructor(public db: RemoteDb) {}
     async get(pid: number, options?: RequestInit): Promise<Db.Take[]> {
-      return this.db.get(`./data/takes.${pid}.json`, options);
+      return this.db.get(`/api/v1/takes/${pid}`, options);
     }
   }
   
   class Prescriptions {
     constructor(public db: RemoteDb) {}
-    async get(pid: number, options?: RequestInit): Promise<Db.Prescription[]> {
+    async get(pid: number, options?: RequestInit): Promise<Db.Prescription | undefined> {
       return (
-        (await this.db.get(`./data/prescriptions.${pid}.json`, options) as { pid: number; start: string; numDays: number }[])
+        ([await this.db.get(`/api/v1/prescriptions/${pid}`, options) as { pid: number; start: string; numDays: number }])
         .flatMap(row => {
           const start = new Date(row.start);
           return isNaN(start.getFullYear()) ? [] : [{ ...row, start }];
         })
+        .pop()
       );
     }
   }
@@ -131,14 +132,13 @@ export namespace Db {
   class Drugs {
     constructor(public db: RemoteDb) {}
     async get(options?: RequestInit): Promise<Db.Drug[]> {
-      return this.db.get('./data/drugs.json', options);
+      return this.db.get('/api/v1/drugs', options);
     }
   }
   
   export interface Drug { 
     did: number; 
     description: string; 
-    doses: number;
   }
 
   export interface Prescription {
@@ -152,7 +152,7 @@ export namespace Db {
     did: number;
     dose: number;
     time: number;
-    days: number[];
+    days?: number[];
   }
 
   export interface Log {

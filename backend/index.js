@@ -40,14 +40,14 @@ const drugs = (db) => {
     })
     .all(() => { throw createError.MethodNotAllowed() });
 
-  router.route('/:id')
+  router.route('/:did')
     .get((req, res, next) => {
-      const id = Number.parseInt(req.params.id);
-      if (isNaN(id)) { throw createError.BadRequest('Invalid id') }
-      const sql = 'SELECT * FROM pills_rx.Drugs WHERE id=?';
-      const values = [id];
+      const did = Number.parseInt(req.params.did);
+      if (isNaN(did)) { throw createError.BadRequest('Invalid id') }
+      const sql = 'SELECT * FROM pills_rx.Drugs WHERE did=?';
+      const values = [did];
       db.query({ sql, values }, (err, results) => {
-        if (!results?.length || results[0]?.id !== id) { err = createError.NotFound() }
+        if (!results?.length) { err = createError.NotFound() }
         if (err) { next(err) }
         else { res.json(results[0]) }
       });
@@ -70,14 +70,14 @@ const prescriptions = (db) => {
     })
     .all(() => { throw createError.MethodNotAllowed() });
 
-  router.route('/:id')
+  router.route('/:pid')
     .get((req, res, next) => {
-      const id = Number.parseInt(req.params.id);
-      if (isNaN(id)) { throw createError.BadRequest('Invalid id') }
-      const sql = 'SELECT * FROM pills_rx.Prescriptions WHERE id=?';
-      const values = [id];
+      const pid = Number.parseInt(req.params.pid);
+      if (isNaN(pid)) { throw createError.BadRequest('Invalid id') }
+      const sql = 'SELECT * FROM pills_rx.Prescriptions WHERE pid=?';
+      const values = [pid];
       db.query({ sql, values }, (err, results) => {
-        if (!results?.length || results[0]?.id !== id) { err = createError.NotFound() }
+        if (!results?.length) { err = createError.NotFound() }
         if (err) { next(err) }
         else { res.json(results[0]) }
       });
@@ -89,25 +89,38 @@ const prescriptions = (db) => {
 
 const takes = (db) => {
   const router = express.Router();
+
+  const normalizeResults = results => (
+    results.map(({ days, ...rest }) => Object.assign(
+      rest, 
+      days && { days: days.split(',').map(x => parseInt(x.trim())).filter(Boolean) }
+    ))
+  );
   
   router.route('/')
     .get((req, res, next) => {
       const sql = 'SELECT * FROM pills_rx.Takes';
       db.query({ sql }, (err, results) => {
+        if (!err) {
+          results = normalizeResults(results);
+        }
         if (err) { next(err) }
         else { res.json(results) }
       });
     })
     .all(() => { throw createError.MethodNotAllowed() });
 
-  router.route('/:id')
+  router.route('/:pid')
     .get((req, res, next) => {
-      const id = Number.parseInt(req.params.id);
-      if (isNaN(id)) { throw createError.BadRequest('Invalid id') }
-      const sql = 'SELECT * FROM pills_rx.Takes WHERE prescription_id=?';
-      const values = [id];
+      const pid = Number.parseInt(req.params.pid);
+      if (isNaN(pid)) { throw createError.BadRequest('Invalid id') }
+      const sql = 'SELECT * FROM pills_rx.Takes WHERE pid=?';
+      const values = [pid];
       db.query({ sql, values }, (err, results) => {
         if (!results?.length) { err = createError.NotFound() }
+        if (!err) {
+          results = normalizeResults(results);
+        }
         if (err) { next(err) }
         else { res.json(results) }
       });
