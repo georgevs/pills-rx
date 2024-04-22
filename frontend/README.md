@@ -9,8 +9,8 @@ docker container run --rm \
   --network bridge-dev \
   --ip 172.20.0.101 \
   --user node \
-  --workdir /home/node/pills-rx \
-  --volume "$PWD:/home/node/pills-rx" \
+  --workdir /home/node/frontend  \
+  --volume "$PWD:/home/node/frontend" \
   -it node bash
 ```
 

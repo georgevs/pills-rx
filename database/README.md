@@ -9,7 +9,7 @@ sudo apt install mysql-client
 ```bash
 (read -s -p 'Password:' MYSQL_ROOT_PASSWORD ; \
 docker container run --rm -d \
-  --name mysql-dev \
+  --name mysql \
   --network bridge-dev \
   --ip 172.20.0.103 \
   --env MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
