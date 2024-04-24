@@ -1,0 +1,6 @@
+[
+  { "pid": 1, "did": 1, "dose": 1, "time": 800 },
+  { "pid": 1, "did": 1, "dose": 1, "time": 2000 },
+  { "pid": 1, "did": 2, "dose": 1, "time": 1200 },
+  { "pid": 1, "did": 3, "dose": 1, "time": 1200, "days": [1,6,13] }
+]
